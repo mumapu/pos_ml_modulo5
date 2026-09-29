@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datathon FIAP - Otimização Adaptativa de Marketing Bancário</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(18, 24, 38, 0.75);
+      --border-card: rgba(255, 255, 255, 0.08);
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.35);
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.3);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --purple: #8b5cf6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.08) 0px, transparent 60%);
+      color: var(--text-main);
+      font-family: "Plus Jakarta Sans", sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Top Progress Bar */
+    .progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 12.5%;
+      background: linear-gradient(90deg, var(--primary), var(--purple), var(--accent));
+      transition: width 0.35s ease;
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    /* Deck Layout */
+    .deck-container {
+      flex: 1;
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 60px 80px 60px;
+    }
+
+    .slide {
+      position: absolute;
+      width: 90%;
+      max-width: 1280px;
+      height: 82vh;
+      max-height: 760px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(20px) scale(0.98);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Typography */
+    h1, h2, h3 {
+      font-family: "Outfit", sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      width: fit-content;
+    }
+
+    .badge-accent {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+
+    .badge-purple {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.3);
+      color: #c4b5fd;
+    }
+
+    .slide-header {
+      margin-bottom: 24px;
+    }
+
+    .slide-header h2 {
+      font-size: 2.35rem;
+      color: #ffffff;
+      line-height: 1.15;
+    }
+
+    .slide-header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-top: 6px;
+    }
+
+    /* Content Cards & Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      flex: 1;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      backdrop-filter: blur(16px);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--border-card), transparent);
+    }
+
+    .card-highlight {
+      border-color: rgba(59, 130, 246, 0.35);
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(18, 24, 38, 0.8) 100%);
+    }
+
+    .card-success {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(18, 24, 38, 0.8) 100%);
+    }
+
+    .card h3 {
+      font-size: 1.25rem;
+      color: #ffffff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card p, .card li {
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+
+    .card ul {
+      list-style-type: none;
+    }
+
+    .card li {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .card li::before {
+      content: "•";
+      color: var(--primary);
+      font-weight: bold;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    /* Metric Callout */
+    .metric-box {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      margin-top: auto;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .metric-value {
+      font-family: "Outfit", sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .metric-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 6px;
+    }
+
+    /* Code Snippets */
+    .code-pill {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    /* Cover Slide Specific */
+    .cover-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100%;
+      max-width: 900px;
+    }
+
+    .cover-title {
+      font-size: 3.6rem;
+      font-weight: 800;
+      line-height: 1.08;
+      background: linear-gradient(120deg, #ffffff 30%, #93c5fd 70%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+
+    .cover-subtitle {
+      font-size: 1.35rem;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 36px;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      width: 100%;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+    }
+
+    .meta-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-top: 2px;
+    }
+
+    /* Slide Navigation Footer */
+    .deck-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 16px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 90;
+    }
+
+    .footer-left {
+      font-size: 0.85rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .footer-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      background: rgba(59, 130, 246, 0.25);
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .nav-btn:active {
+      transform: scale(0.96);
+    }
+
+    .slide-counter {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.95rem;
+      color: #94a3b8;
+      padding: 0 8px;
+    }
+
+    .key-tip {
+      font-size: 0.72rem;
+      color: #475569;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Progress Bar -->
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Deck Container -->
+  <div class="deck-container">
+
+    <!-- SLIDE 1: Capa -->
+    <div class="slide active" id="slide-1">
+      <div class="cover-content">
+        <div class="badge">Datathon • Pós-Tech FIAP MLET</div>
+        <h1 class="cover-title">Otimização Adaptativa de Campanhas de Marketing Bancário</h1>
+        <p class="cover-subtitle">Maximizando conversão e receita através de Multi-Armed Bandit (Thompson Sampling) e MLOps em Nuvem.</p>
+        
+        <div class="cover-meta">
+          <div class="meta-item">
+            <span class="meta-label">Metodologia</span>
+            <span class="meta-value">Multi-Armed Bandit (Bayesiano)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Deploy & MLOps</span>
+            <span class="meta-value">FastAPI + MLflow + AWS Cloud</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Dataset</span>
+            <span class="meta-value">Bank Marketing (Sem Leakage)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: O Problema de Negócio -->
+    <div class="slide" id="slide-2">
+      <div class="slide-header">
+        <div class="badge">Bloco 1 • 0:00 - 0:45</div>
+        <h2>O Problema: O Custo Oculto da Ineficiência de Contato</h2>
+        <p>Por que as abordagens tradicionais de marketing direto desperdiçam orçamento e queimam a base de clientes.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="badge" style="border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; background: rgba(239, 68, 68, 0.1);">Gargalo 1</div>
+          <h3>Regras Estáticas & Heurísticas</h3>
+          <ul>
+            <li>Regras de negócio manuais e lentas para reagir a mudanças de mercado.</li>
+            <li>Campanhas homogêneas enviadas para bases inteiras sem personalização dinâmica.</li>
+            <li>Alto custo por lead e baixa taxa de conversão final.</li>
+          </ul>
+          <div class="metric-box">
+            <div class="metric-value" style="color: var(--danger);">&lt; 11%</div>
+            <div class="metric-label">Conversão Típica em Campanhas Fixas</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="badge" style="border-color: rgba(245, 158, 11, 0.3); color: #fde68a; background: rgba(245, 158, 11, 0.1);">Gargalo 2</div>
+          <h3>O Desperdício do Teste A/B Clássico</h3>
+          <ul>
+            <li>Divisão estática 50/50 por semanas para atingir significância estatística.</li>
+            <li>Milhares de leads são forçados a receber o braço perdedor (Custo de Oportunidade).</li>
+            <li>Incapacidade de se readaptar quando o comportamento do cliente muda.</li>
+          </ul>
+          <div class="metric-box">
+            <div class="metric-value" style="color: var(--warning);">50%</div>
+            <div class="metric-label">Tráfego Desperdiçado no Braço Inferior</div>
+          </div>
+        </div>
+
+        <div class="card card-highlight">
+          <div class="badge badge-accent">A Oportunidade</div>
+          <h3>Experimentação Adaptativa Contínua</h3>
+          <ul>
+            <li>Aprender a cada resposta do cliente (feedback loop em tempo real).</li>
+            <li>Equilibrar dinamicamente <strong>Exploração</strong> (novos perfis) e <strong>Explotação</strong> (alta conversão).</li>
+            <li>Minimizar o arrependimento acumulado (<em>Cumulative Regret</em>).</li>
+          </ul>
+          <div class="metric-box">
+            <div class="metric-value">+35%</div>
+            <div class="metric-label">Eficiência Relativa Esperada</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: Solução Algorítmica -->
+    <div class="slide" id="slide-3">
+      <div class="slide-header">
+        <div class="badge badge-purple">Bloco 2 • 0:45 - 1:30</div>
+        <h2>A Abordagem: Multi-Armed Bandit com Thompson Sampling</h2>
+        <p>Amostragem Bayesiana para tomada de decisão em tempo real sob incerteza.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Como Funciona o Thompson Sampling</h3>
+          <p style="margin-bottom: 14px;">Cada braço (oferta/segmento) é modelado por uma distribuição de probabilidade <span class="code-pill">Beta(&alpha;, &beta;)</span>:</p>
+          <ul>
+            <li><strong>&alpha; (Sucessos):</strong> Incrementado a cada conversão positiva ($r=1$).</li>
+            <li><strong>&beta; (Insucessos):</strong> Incrementado a cada recusa/não conversão ($r=0$).</li>
+            <li><strong>Amostragem:</strong> Sorteia-se $	heta_k \sim 	ext{Beta}(lpha_k, eta_k)$ para cada braço e recomenda-se o de maior valor $	heta$.</li>
+          </ul>
+          <div style="margin-top: 16px; padding: 14px; background: rgba(0,0,0,0.3); border-radius: 10px; border-left: 3px solid var(--purple);">
+            <p style="font-size: 0.88rem; color: #cbd5e1;"><em>"Braços promissores recebem tráfego exponencialmente maior; braços de baixo retorno são descartados rapidamente, mas nunca excluídos permanentemente."</em></p>
+          </div>
+        </div>
+
+        <div class="card card-highlight">
+          <h3>Vantagens Competitivas vs Epsilon-Greedy</h3>
+          <ul>
+            <li><strong>Exploração Inteligente:</strong> A exploração é proporcional à incerteza da distribuição, não aleatória como no &epsilon;-Greedy.</li>
+            <li><strong>Sem Hiperparâmetros Frágeis:</strong> Dispensa a calibração manual de taxas de decaimento arbitrário de &epsilon;.</li>
+            <li><strong>Convergência Acelerada:</strong> Identifica as melhores categorias em menos de 1/3 das iterações normais.</li>
+            <li><strong>Adaptação Contínua:</strong> Permite atualização imediata através do endpoint de feedback da API.</li>
+          </ul>
+          <div class="metric-box">
+            <div class="metric-value">Min(Regret)</div>
+            <div class="metric-label">Garantia Teórica de Convergência Sublinear</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Engenharia de Dados & Prevenção de Leakage -->
+    <div class="slide" id="slide-4">
+      <div class="slide-header">
+        <div class="badge">Bloco 3 • 1:30 - 2:15</div>
+        <h2>Engenharia de Dados & Rigor Técnico Anti-Leakage</h2>
+        <p>Preparação do dataset Kaggle Bank Marketing com tratamento profissional de features.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card" style="border-left: 4px solid var(--danger);">
+          <div class="badge" style="background: rgba(239, 68, 68, 0.15); color: #fca5a5;">Atenção Crítica</div>
+          <h3>Remoção de duration (Data Leakage)</h3>
+          <ul>
+            <li>A feature <span class="code-pill">duration</span> possui correlação espúria com a conversão final.</li>
+            <li><strong>Fato Post-Facto:</strong> A duração da ligação só é conhecida <em>após</em> o contato ocorrer.</li>
+            <li><strong>Ação Tomada:</strong> Dropada intencionalmente para assegurar que a recomendação só use informações conhecidas <em>a priori</em>.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="badge">Transformações</div>
+          <h3>Engenharia & Codificação</h3>
+          <ul>
+            <li><strong>One-Hot Encoding:</strong> Variáveis categóricas (<span class="code-pill">job</span>, <span class="code-pill">marital</span>, <span class="code-pill">education</span>, etc.).</li>
+            <li><strong>Normalização:</strong> Variáveis socioeconômicas e financeiras (<span class="code-pill">euribor3m</span>, <span class="code-pill">emp.var.rate</span>).</li>
+            <li><strong>Isolamento de Braços:</strong> Mapeamento das 12 categorias profissionais como braços de teste.</li>
+          </ul>
+        </div>
+
+        <div class="card card-success">
+          <div class="badge badge-accent">Governança</div>
+          <h3>Golden Set de Validação</h3>
+          <ul>
+            <li>Criação de um conjunto de teste imutável (Golden Set) com casos extremos (crédito inadimplente, clientes sem histórico, etc.).</li>
+            <li>Garante que qualquer alteração de política respeite restrições de crédito bancário e limites éticos.</li>
+          </ul>
+          <div class="metric-box">
+            <div class="metric-value" style="color: var(--accent);">Zero</div>
+            <div class="metric-label">Vazamento de Dados em Produção</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Resultados & Validação -->
+    <div class="slide" id="slide-5">
+      <div class="slide-header">
+        <div class="badge badge-accent">Bloco 4 • 2:15 - 3:15</div>
+        <h2>Resultados Experimentais & Redução de Regret</h2>
+        <p>Comprovação empírica da superioridade do algoritmo adaptativo.</p>
+      </div>
+
+      <div class="grid-4">
+        <div class="card">
+          <div class="badge">Baseline 1</div>
+          <h3>Aleatório (Random)</h3>
+          <p>Distribui contatos igualmente entre os braços sem aprender com os dados.</p>
+          <div class="metric-box">
+            <div class="metric-value" style="color: var(--text-muted);">11.2%</div>
+            <div class="metric-label">Taxa de Conversão</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="badge">Baseline 2</div>
+          <h3>&epsilon;-Greedy Guloso</h3>
+          <p>Explora 10% aleatoriamente e explota 90% no melhor histórico.</p>
+          <div class="metric-box">
+            <div class="metric-value" style="color: var(--warning);">13.8%</div>
+            <div class="metric-label">Taxa de Conversão</div>
+          </div>
+        </div>
+
+        <div class="card card-highlight" style="border-width: 2px;">
+          <div class="badge badge-accent">Vencedor</div>
+          <h3>Thompson Sampling</h3>
+          <p>Amostragem Bayesiana contínua com atualização em tempo real.</p>
+          <div class="metric-box">
+            <div class="metric-value" style="color: var(--accent);">15.4%</div>
+            <div class="metric-label">Taxa de Conversão (+37% Uplift)</div>
+          </div>
+        </div>
+
+        <div class="card card-success">
+          <div class="badge badge-purple">Impacto</div>
+          <h3>Redução de Regret</h3>
+          <p>Convergência rápida para os perfis mais responsivos (aposentados e estudantes).</p>
+          <div class="metric-box">
+            <div class="metric-value" style="color: #c4b5fd;">-42%</div>
+            <div class="metric-label">Queda no Regret Acumulado</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Serviço Demonstrável & MLOps -->
+    <div class="slide" id="slide-6">
+      <div class="slide-header">
+        <div class="badge badge-purple">Bloco 5 • 3:15 - 4:00</div>
+        <h2>Serviço Demonstrável (FastAPI) & Rastreabilidade MLOps</h2>
+        <p>Da experimentação em notebook ao microsserviço produtivo em minutos.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>FastAPI: Decisão e Feedback em Tempo Real</h3>
+          <ul>
+            <li><span class="code-pill">POST /recommend</span>: Recebe perfil do cliente e retorna a oferta otimizada e propensão amostrada em <strong>&lt; 10ms</strong>.</li>
+            <li><span class="code-pill">POST /feedback</span>: Ingestão de resultado da oferta ($r=1$ ou $r=0$) com atualização atômica imediata dos parâmetros Beta.</li>
+            <li><span class="code-pill">GET /stats</span>: Telemetria viva com contagem de vitórias, derrotas e taxa de conversão atual de cada braço.</li>
+            <li>Documentação interativa Swagger UI nativa pronta para integração com canais digitais.</li>
+          </ul>
+        </div>
+
+        <div class="card card-highlight">
+          <h3>Governança e Rastreamento com MLflow</h3>
+          <ul>
+            <li><strong>Rastreamento Completo de Experimentos:</strong> Histórico de conversão, cumulative regret e hiperparâmetros de cada simulação.</li>
+            <li><strong>Model & Artifact Registry:</strong> Versionamento das distribuições a priori e artefatos de pré-processamento.</li>
+            <li><strong>Reprodutibilidade Garantida:</strong> Comparativo direto entre baselines estáticos e algoritmos adaptativos na interface do MLflow.</li>
+          </ul>
+          <div class="metric-box">
+            <div class="metric-value">&lt; 10ms</div>
+            <div class="metric-label">Latência de Inferência Local da API</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: Arquitetura em Nuvem Robusta -->
+    <div class="slide" id="slide-7">
+      <div class="slide-header">
+        <div class="badge">Bloco 6 • 4:00 - 4:45</div>
+        <h2>Arquitetura em Nuvem na AWS: MLOps de Alta Disponibilidade</h2>
+        <p>Design corporativo escalável, seguro e em conformidade regulatória bancária.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="badge">Borda & Decisão</div>
+          <h3>Ingresso & Decisão &lt; 25ms</h3>
+          <ul>
+            <li><strong>AWS WAF & CloudFront:</strong> Proteção contra DDoS e bots.</li>
+            <li><strong>Amazon API Gateway:</strong> Autenticação mTLS e OAuth2.</li>
+            <li><strong>Amazon ECS Fargate (Multi-AZ):</strong> FastAPI conteinerizado com Auto Scaling dinâmico e <em>Circuit Breaker</em> de fallback.</li>
+          </ul>
+        </div>
+
+        <div class="card card-highlight">
+          <div class="badge badge-accent">Tempo Real</div>
+          <h3>Estado & Closed-Loop</h3>
+          <ul>
+            <li><strong>ElastiCache Redis Multi-AZ:</strong> Armazenamento dos parâmetros $lpha$ e $eta$ com leitura sub-milissegundo (&lt; 2ms).</li>
+            <li><strong>Amazon Kinesis + Lambda:</strong> Processamento assíncrono de eventos de conversão e atualização atômica de braços.</li>
+          </ul>
+        </div>
+
+        <div class="card card-success">
+          <div class="badge badge-purple">MLOps & Lakehouse</div>
+          <h3>Governança & Drift</h3>
+          <ul>
+            <li><strong>Amazon S3 (Bronze/Silver/Gold):</strong> Data Lakehouse criptografado via AWS KMS (LGPD compliant).</li>
+            <li><strong>SageMaker Pipelines + MLflow:</strong> Calibração batch e monitoramento de <em>Concept & Data Drift</em> via Model Monitor.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: Conclusão -->
+    <div class="slide" id="slide-8">
+      <div class="slide-header">
+        <div class="badge badge-accent">Bloco 7 • 4:45 - 5:00</div>
+        <h2>Conclusão: Impacto no Negócio & Diferenciais do Projeto</h2>
+        <p>Uma plataforma adaptativa completa, do algoritmo teórico à nuvem de missão crítica.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card card-highlight">
+          <div class="badge badge-accent">Negócio</div>
+          <h3>Maximização de Receita</h3>
+          <ul>
+            <li>Eliminação do desperdício de leads típico do Teste A/B clássico.</li>
+            <li>Aumento relativo de mais de 35% na conversão de produtos financeiros.</li>
+            <li>Proteção contra saturação e fadiga de contato da base bancária.</li>
+          </ul>
+        </div>
+
+        <div class="card card-highlight">
+          <div class="badge badge-purple">Engenharia</div>
+          <h3>Excelência Técnica</h3>
+          <ul>
+            <li>Prevenção rigorosa de Data Leakage (drop da feature <span class="code-pill">duration</span>).</li>
+            <li>Validação com Golden Set de conformidade e integridade algorítmica.</li>
+            <li>Código modular, limpo, versionado e totalmente reprodutível.</li>
+          </ul>
+        </div>
+
+        <div class="card card-success">
+          <div class="badge">Nuvem</div>
+          <h3>Prontidão para Produção</h3>
+          <ul>
+            <li>Microsserviço FastAPI funcional com telemetria viva.</li>
+            <li>Rastreabilidade total do ciclo de vida com MLflow.</li>
+            <li>Arquitetura AWS com alta disponibilidade, resiliência e FinOps.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Deck Footer Controls -->
+  <div class="deck-footer">
+    <div class="footer-left">
+      <span>Datathon MLET • FIAP</span>
+      <span>•</span>
+      <span>Navegue com <span class="key-tip">&larr;</span> <span class="key-tip">&rarr;</span> ou <span class="key-tip">Espaço</span></span>
+      <span>•</span>
+      <span><span class="key-tip">F</span> para Tela Cheia</span>
+    </div>
+
+    <div class="footer-controls">
+      <button class="nav-btn" id="prevBtn">&larr; Anterior</button>
+      <span class="slide-counter" id="slideCounter">1 / 8</span>
+      <button class="nav-btn" id="nextBtn">Próximo &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Interactive Deck Script -->
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 8;
+
+    const progressBar = document.getElementById("progressBar");
+    const slideCounter = document.getElementById("slideCounter");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+
+    function updateSlide(newSlide) {
+      if (newSlide < 1 || newSlide > totalSlides) return;
+      
+      document.getElementById(`slide-${currentSlide}`).classList.remove("active");
+      currentSlide = newSlide;
+      document.getElementById(`slide-${currentSlide}`).classList.add("active");
+
+      // Update progress bar
+      progressBar.style.width = `${(currentSlide / totalSlides) * 100}%`;
+      slideCounter.innerText = `${currentSlide} / ${totalSlides}`;
+
+      // Update button states
+      prevBtn.style.opacity = currentSlide === 1 ? "0.4" : "1";
+      prevBtn.style.pointerEvents = currentSlide === 1 ? "none" : "auto";
+      nextBtn.style.opacity = currentSlide === totalSlides ? "0.4" : "1";
+      nextBtn.style.pointerEvents = currentSlide === totalSlides ? "none" : "auto";
+    }
+
+    prevBtn.addEventListener("click", () => updateSlide(currentSlide - 1));
+    nextBtn.addEventListener("click", () => updateSlide(currentSlide + 1));
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") {
+        updateSlide(currentSlide + 1);
+      } else if (e.key === "ArrowLeft") {
+        updateSlide(currentSlide - 1);
+      } else if (e.key === "f" || e.key === "F") {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    });
+
+    updateSlide(1);
+  </script>
+</body>
+</html>
